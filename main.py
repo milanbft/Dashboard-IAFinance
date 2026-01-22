@@ -26,3 +26,4 @@ df_av.to_csv(f"{DATA_DIR}/{symbol}_alpha_vantage.csv") #sauvegarde
 df_vix = fetch_quandl("CBOE/VIX", QUANDL_API_KEY) #volatilité (à changer)
 df_vix.to_csv(f"{DATA_DIR}/VIX_quandl.csv") #sauvegarde
 
+

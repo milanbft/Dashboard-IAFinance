@@ -10,3 +10,4 @@ def compute_volatility(df,
     df["volatility"] = df["log_return"].rolling(window).std() * np.sqrt(252) #calcul de la volatilité glissante (sur window jours) et annualisation de la volatilité (252 jours de bourse par an)
                                                                              #volatilité annuelle=volatilité journalière * (252**(1/2))
     return df.dropna() #supprime les valeurs manquantes
+

@@ -19,3 +19,4 @@ def fetch_yahoo( #aucune clé API requise
 
     except Exception as e: #récupère le message d'erreur original
         raise YahooFinanceError(str(e))
+

@@ -55,3 +55,4 @@ def fetch_alpha_vantage(symbol, #ticker
             raise AlphaVantageAPIError(str(e))
 
     raise AlphaVantageAPIError("Max retries exceeded") #erreur non dépendante de requests
+

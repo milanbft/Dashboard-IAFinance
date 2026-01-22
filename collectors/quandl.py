@@ -19,3 +19,5 @@ def fetch_quandl(dataset, api_key):
 
     except Exception as e:  #message d'erreur original
         raise QuandlAPIError(str(e))
+
+
