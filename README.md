@@ -8,13 +8,17 @@ Le dashboard permet de :
   - Comparer les données de différentes sources
   - Entraîner ou charger un modèle LSTM pré-entraîné
 
+
+
 - Lancement du projet (code bash)
 
 git clone https://github.com/milanbft/dashboard-iafinance.git
 cd dashboard-iafinance
+
 python -m venv venv
 venv\Scripts\activate     #Windows
 source venv/bin/activate  #Linux/macOS
+
 pip install -r requirements.txt
 
 export ALPHA_VANTAGE_API_KEY="votre_clef_alpha"
