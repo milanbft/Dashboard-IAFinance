@@ -1,40 +1,62 @@
-#ACQUISITION DES DONNEES
 
+
+import streamlit as st
 import os #créer dossiers, gère chemins et rend le script portable
 import numpy as np
+import pandas as pd
 import torch #Deeplearning, backpropagation,...
 import torch.nn as nn #définit les modèles
+import matplotlib.pyplot as plt
 from collectors.alpha_vantage import fetch_alpha_vantage
 from collectors.yahoo import fetch_yahoo
 from collectors.quandl import fetch_quandl
 from features.volatility_features import compute_volatility
-from config import *
+from features.config import *
 
-symbol = "AAPL" #choix de l'actif (à changer)
 
-os.makedirs(DATA_DIR, exist_ok=True) #création dossier de stockage
+st.set_page_config(page_title="Volatility Predictor", layout="wide")
+
+st.title("📈 Dashboard IA Finance - Prédiction de Volatilité")
+
+symbol = st.text_input("Ticker de l'actif", value="AAPL") #choix de l'actif
+
+#os.makedirs(DATA_DIR, exist_ok=True) #création dossier de stockage
+
+#ACQUISITION DES DONNEES
 
 #Yahoo Finance
-df_yahoo = fetch_yahoo(symbol) #data
-df_yahoo = compute_volatility(df_yahoo) #calculs
-df_yahoo.to_csv(f"{DATA_DIR}/{symbol}_yahoo.csv") #sauvegarde
+try:
+    df_yahoo = fetch_yahoo(symbol) #data
+    df_yahoo = compute_volatility(df_yahoo) #calculs
+    #df_yahoo.to_csv(f"{DATA_DIR}/{symbol}_yahoo.csv") #sauvegarde
+except Exception as e:
+    st.error(f"Erreur Yahoo Finance : {e}")
+    st.stop()
 
 #Alpha Vantage
-df_av = fetch_alpha_vantage(symbol, ALPHA_VANTAGE_API_KEY) #data
-df_av.rename(columns={"4. close": "Close"}, inplace=True) #renomme car Alpha Vantage renvoie "4. close"
-df_av = compute_volatility(df_av) #calculs
-df_av.to_csv(f"{DATA_DIR}/{symbol}_alpha_vantage.csv") #sauvegarde
+try:
+    df_av = fetch_alpha_vantage(symbol, ALPHA_VANTAGE_API_KEY) #data
+    df_av.rename(columns={"4. close": "Close"}, inplace=True) #renomme car Alpha Vantage renvoie "4. close"
+    df_av = compute_volatility(df_av) #calculs
+    #df_av.to_csv(f"{DATA_DIR}/{symbol}_alpha_vantage.csv") #sauvegarde
+except Exception as e:
+    st.warning(f"Erreur Alpha Vantage : {e}")
+    df_av = df_yahoo.copy()  #fallback
 
 #Quandl
-df_vix = fetch_quandl("CBOE/VIX", QUANDL_API_KEY) #volatilité (à changer)
-df_vix.to_csv(f"{DATA_DIR}/VIX_quandl.csv") #sauvegarde
+try:
+    df_vix = fetch_quandl("CBOE/VIX", QUANDL_API_KEY) #volatilité (à changer)
+    #df_vix.to_csv(f"{DATA_DIR}/VIX_quandl.csv") #sauvegarde
+except Exception as e:
+    st.warning(f"Erreur Quandl : {e}")
+    df_vix = pd.DataFrame(index=df_yahoo.index, data={"VIX": np.zeros(len(df_yahoo))})
 
 #RESEAU DE NEURONES LSTM (Long-Short-Term-Memory)
 
 df = df_yahoo.join(df_av, lsuffix="_yahoo", rsuffix="_av", how="inner") #fusion des dataframes yahoo et Alpha Vantage
                                                                         #(ajoute _yahoo et _av aux colonnes communes et garde uniquement les dates présentes dans les deux dataframes)
 df = df.join(df_vix, how="inner") #fusionne avec Quandl (garde uniquement les dates communes)
-df = df.dropna() #supprime les valeurs manquantes
+df = df.dropna(inplace=True) #supprime les valeurs manquantes
 
 X = df[["log_return_yahoo", "log_return_av", "VIX"]].values #sélectionne les inputs (rendements Yahoo et Alpha Vantage et volatilité) : array numpy
 y = df["volatility_yahoo"].values #valeur attendue : array numpy
@@ -78,20 +100,26 @@ model = VolatilityLSTM(input_size=X_tensor.shape[2])
 
 #Entraînement LSTM
 
-criterion = nn.MSELoss() #Mean Squared Error
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
-epochs = 50
+TRAIN_MODEL = st.checkbox("Entraîner le modèle maintenant ?", value=True)
 
-for epoch in range(epochs):
-    model.train() #modèle en mode entraînement
-    optimizer.zero_grad() #reset des gradients
-    output = model(X_tensor) #prédiction pour chaque séquence
-    loss = criterion(output, y_tensor) #calcul l'erreur entre l'output et le réel
-    loss.backward() #calcul automatique des gradients
-    optimizer.step() #mis à jour des poids
+if TRAIN_MODEL:
+    criterion = nn.MSELoss() #Mean Squared Error
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
+    epochs = st.slider("Nombre d'époques", min_value=10, max_value=200, value=50, step=10)
 
-    if (epoch+1) % 10 == 0: #affichage périodique
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}") #Loss décroît=apprentissage
+    for epoch in range(epochs):
+        model.train() #modèle en mode entraînement
+        optimizer.zero_grad() #reset des gradients
+        output = model(X_tensor) #prédiction pour chaque séquence
+        loss = criterion(output, y_tensor) #calcul l'erreur entre l'output et le réel
+        loss.backward() #calcul automatique des gradients
+        optimizer.step() #mis à jour des poids
+
+        if (epoch+1) % 10 == 0: #affichage périodique
+            st.write(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}") #Loss décroît=apprentissage
+
+else:
+    st.info("Chargement du modèle pré-entraîné (à implémenter si disponible)")
 
 #Prédiction
 
@@ -101,9 +129,16 @@ with torch.no_grad(): #bloque la création du graphe de calcul
 
 #Possibilité de calculer R²
 
-import matplotlib.pyplot as plt
+#Affichage des résultats
 
-plt.plot(y_seq, label="Volatilité réelle")
-plt.plot(y_pred, label="Volatilité prédite")
-plt.legend()
-plt.show()
+st.subheader("Volatilité réelle vs prédite")
+fig, ax = plt.subplots(figsize=(12,5))
+ax.plot(y_seq, label="Volatilité réelle")
+ax.plot(y_pred, label="Volatilité prédite")
+ax.set_xlabel("Jours")
+ax.set_ylabel("Volatilité annualisée")
+ax.legend()
+st.pyplot(fig)
+
+if st.checkbox("Afficher les données brutes"):
+    st.write(df)
