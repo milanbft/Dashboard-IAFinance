@@ -1,8 +1,9 @@
-streamlit==1.23.1
-pandas>=2.0.0
-numpy>=2.0.0
-torch>=2.1.0
-yfinance>=1.0.0
-matplotlib>=3.8.0
-plotly>=5.20.0
-requests>=2.32.0
+streamlit
+pandas
+numpy
+torch
+yfinance
+nasdaqdatalink
+matplotlib
+requests
+plotly
