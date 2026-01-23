@@ -1,7 +1,6 @@
 #APP
 
 import streamlit as st
-import os #créer dossiers, gère chemins et rend le script portable
 import numpy as np
 import pandas as pd
 import torch #Deeplearning, backpropagation,...
@@ -12,7 +11,6 @@ from collectors.yahoo import fetch_yahoo
 from collectors.quandl import fetch_quandl
 from features.volatility_features import compute_volatility
 from features.config import *
-
 
 st.set_page_config(page_title="Volatility Predictor", layout="wide")
 

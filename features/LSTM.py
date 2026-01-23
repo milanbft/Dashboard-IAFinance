@@ -1,6 +1,5 @@
 #ACQUISITION DES DONNEES
 
-import os #créer dossiers, gère chemins et rend le script portable
 import numpy as np
 import torch #Deeplearning, backpropagation,...
 import torch.nn as nn #définit les modèles
@@ -92,6 +91,8 @@ for epoch in range(epochs):
 
     if (epoch+1) % 10 == 0: #affichage périodique
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}") #Loss décroît=apprentissage
+
+import os #créer dossiers, gère chemins et rend le script portable
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  #chemin de LSTM.py
 MODEL_DIR = os.path.join(BASE_DIR, "../models")        #remonte d'un dossier pour créer models
