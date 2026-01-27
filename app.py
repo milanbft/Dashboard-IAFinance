@@ -7,6 +7,7 @@ import pandas as pd
 import torch #Deeplearning, backpropagation,...
 import torch.nn as nn #définit les modèles
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 from collectors.alpha_vantage import fetch_alpha_vantage
 from collectors.yahoo import fetch_yahoo
 from collectors.quandl import fetch_quandl
@@ -58,9 +59,15 @@ df = df.join(df_vix, how="inner") #fusionne avec Quandl (garde uniquement les da
 df = df.dropna() #supprime les valeurs manquantes
 
 X = df[["log_return_yahoo", "log_return_av", "VIX"]].values #sélectionne les inputs (rendements Yahoo et Alpha Vantage et volatilité) : array numpy
-y = df["volatility_yahoo"].values #valeur attendue : array numpy
+y = np.log(df["volatility_yahoo"].values + 1e-6) #valeur attendue : array numpy et log de volatility 
 
-sequence_length = 30 #(window)
+scaler_X = StandardScaler() 
+scaler_y = StandardScaler()
+
+X = scaler_X.fit_transform(X) #normalisation
+y = scaler_y.fit_transform(y.reshape(-1, 1)).ravel() #normalisation
+
+sequence_length = 30 #window
 
 def create_sequences(X, y, seq_len): #création séquences LSTM
     xs, ys = [], [] #listes séquences d'entrée (features) et des targets (volatilité)
@@ -71,14 +78,26 @@ def create_sequences(X, y, seq_len): #création séquences LSTM
 
 X_seq, y_seq = create_sequences(X, y, sequence_length)
 
-X_tensor = torch.tensor(X_seq, dtype=torch.float32) #conversion Pytorch
-y_tensor = torch.tensor(y_seq, dtype=torch.float32).unsqueeze(-1) #prépare la régression continue
+train_size = int(0.8 * len(X_seq))
+
+X_train = X_seq[:train_size]
+y_train = y_seq[:train_size]
+
+X_test = X_seq[train_size:]
+y_test = y_seq[train_size:]
+
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(-1)
+
+X_test = torch.tensor(X_test, dtype=torch.float32) #conversion Pytorch
+y_test = torch.tensor(y_test, dtype=torch.float32).unsqueeze(-1) #prépare la régression continue
 
 class VolatilityLSTM(nn.Module): #définition du modèle
     def __init__(self, input_size, #nombre de features
-                 hidden_size=64, #à changer
+                 hidden_size=128, #à changer
                  num_layers=2, #nombre de couches LSTM empilées
-                 dropout=0.2): #évite l'overfitting
+                 dropout=0.1, #évite l'overfitting
+                 batch_first=True): 
         super(VolatilityLSTM, self).__init__() #initialisation (classe fille de nn)
         self.lstm = nn.LSTM(
             input_size=input_size,
@@ -102,20 +121,21 @@ model = VolatilityLSTM(input_size=X_tensor.shape[2])
 TRAIN_MODEL = st.checkbox("Entraîner le modèle maintenant ?", value=True)
 
 if TRAIN_MODEL:
-    criterion = nn.MSELoss() #Mean Squared Error
+    #criterion = nn.MSELoss() #Mean Squared Error
+    criterion = nn.nn.HuberLoss(delta=1.0)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
-    epochs = st.slider("Nombre d'époques", min_value=10, max_value=200, value=50, step=10)
+    epochs = st.slider("Nombre d'époques", min_value=20, max_value=300, value=100, step=20)
 
     for epoch in range(epochs):
         model.train() #modèle en mode entraînement
         optimizer.zero_grad() #reset des gradients
-        output = model(X_tensor) #prédiction pour chaque séquence
-        loss = criterion(output, y_tensor) #calcul l'erreur entre l'output et le réel
+        output = model(X_train) #prédiction pour chaque séquence
+        loss = criterion(output, y_train) #calcul l'erreur entre l'output et le réel
         loss.backward() #calcul automatique des gradients
         optimizer.step() #mis à jour des poids
 
         if (epoch+1) % 10 == 0: #affichage périodique
-            st.write(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}") #Loss décroît=apprentissage
+            st.write(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.5f}") #Loss décroît=apprentissage
 
 else:
     st.info("Chargement du modèle pré-entraîné (à implémenter si disponible)")
@@ -124,7 +144,14 @@ else:
 
 model.eval() #modèle en mode évaluation
 with torch.no_grad(): #bloque la création du graphe de calcul
-    y_pred = model(X_tensor).numpy() #conversion tensor des prédictions en array
+    y_pred_test = model(X_test).numpy() #conversion tensor des prédictions en array
+    y_test_np = y_test.numpy()
+
+y_pred_test = scaler_y.inverse_transform(y_pred_test) #inversion
+y_test_np = scaler_y.inverse_transform(y_test_np)
+
+y_pred_test = np.exp(y_pred_test) #retour à la volatilité réelle
+y_test_np = np.exp(y_test_np)
 
 #Possibilité de calculer R²
 
@@ -132,12 +159,14 @@ with torch.no_grad(): #bloque la création du graphe de calcul
 
 st.subheader("Volatilité réelle vs prédite")
 fig, ax = plt.subplots(figsize=(12,5))
-ax.plot(y_seq, label="Volatilité réelle")
-ax.plot(y_pred, label="Volatilité prédite")
-ax.set_xlabel("Jours")
+ax.plot(y_test_np, label="Volatilité réelle", linewidth=2)
+ax.plot(y_pred_test, label="Volatilité prédite", linewidth=2)
+ax.set_xlabel("Temps")
 ax.set_ylabel("Volatilité annualisée")
 ax.legend()
+ax.grid(True)
+
 st.pyplot(fig)
 
 if st.checkbox("Afficher les données brutes"):
-    st.write(df)
+    st.dataframe(df)
