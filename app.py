@@ -55,7 +55,7 @@ except Exception as e:
 df = df_yahoo.join(df_av, lsuffix="_yahoo", rsuffix="_av", how="inner") #fusion des dataframes yahoo et Alpha Vantage
                                                                         #(ajoute _yahoo et _av aux colonnes communes et garde uniquement les dates présentes dans les deux dataframes)
 df = df.join(df_vix, how="inner") #fusionne avec Quandl (garde uniquement les dates communes)
-df = df.dropna(inplace=True) #supprime les valeurs manquantes
+df = df.dropna() #supprime les valeurs manquantes
 
 X = df[["log_return_yahoo", "log_return_av", "VIX"]].values #sélectionne les inputs (rendements Yahoo et Alpha Vantage et volatilité) : array numpy
 y = df["volatility_yahoo"].values #valeur attendue : array numpy
