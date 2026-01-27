@@ -18,7 +18,7 @@ st.title("📈 Dashboard IA Finance - Prédiction de Volatilité")
 
 symbol = st.text_input("Ticker de l'actif", value="AAPL") #choix de l'actif
 
-#os.makedirs(DATA_DIR, exist_ok=True) #création dossier de stockage
+os.makedirs(DATA_DIR, exist_ok=True) #création dossier de stockage
 
 #ACQUISITION DES DONNEES
 
@@ -26,7 +26,7 @@ symbol = st.text_input("Ticker de l'actif", value="AAPL") #choix de l'actif
 try:
     df_yahoo = fetch_yahoo(symbol) #data
     df_yahoo = compute_volatility(df_yahoo) #calculs
-    #df_yahoo.to_csv(f"{DATA_DIR}/{symbol}_yahoo.csv") #sauvegarde
+    df_yahoo.to_csv(f"{DATA_DIR}/{symbol}_yahoo.csv") #sauvegarde
 except Exception as e:
     st.error(f"Erreur Yahoo Finance : {e}")
     st.stop()
@@ -36,7 +36,7 @@ try:
     df_av = fetch_alpha_vantage(symbol, ALPHA_VANTAGE_API_KEY) #data
     df_av.rename(columns={"4. close": "Close"}, inplace=True) #renomme car Alpha Vantage renvoie "4. close"
     df_av = compute_volatility(df_av) #calculs
-    #df_av.to_csv(f"{DATA_DIR}/{symbol}_alpha_vantage.csv") #sauvegarde
+    df_av.to_csv(f"{DATA_DIR}/{symbol}_alpha_vantage.csv") #sauvegarde
 except Exception as e:
     st.warning(f"Erreur Alpha Vantage : {e}")
     df_av = df_yahoo.copy()  #fallback
@@ -44,7 +44,7 @@ except Exception as e:
 #Quandl
 try:
     df_vix = fetch_quandl("CBOE/VIX", QUANDL_API_KEY) #volatilité (à changer)
-    #df_vix.to_csv(f"{DATA_DIR}/VIX_quandl.csv") #sauvegarde
+    df_vix.to_csv(f"{DATA_DIR}/VIX_quandl.csv") #sauvegarde
 except Exception as e:
     st.warning(f"Erreur Quandl : {e}")
     df_vix = pd.DataFrame(index=df_yahoo.index, data={"VIX": np.zeros(len(df_yahoo))})
