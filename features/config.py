@@ -2,7 +2,7 @@
 
 import os
 
-ALPHA_VANTAGE_API_KEY = os.environ.get("ALPHA_VANTAGE_API_KEY")
-QUANDL_API_KEY = os.environ.get("QUANDL_API_KEY")
+ALPHA_VANTAGE_API_KEY = os.environ.get("QH192PUJ23K1C6Z8")
+QUANDL_API_KEY = os.environ.get("pX6EDwLFMK1zsMNsdxej")
 
 DATA_DIR = "../data/raw"
