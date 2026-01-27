@@ -3,7 +3,7 @@ pandas
 numpy
 torch
 yfinance
-nasdaqdatalink
+nasdaq-data-link
 matplotlib
 requests
 plotly
