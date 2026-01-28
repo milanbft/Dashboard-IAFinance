@@ -7,4 +7,4 @@ nasdaq-data-link
 matplotlib
 requests
 plotly
-sklearn
+scikit-learn
