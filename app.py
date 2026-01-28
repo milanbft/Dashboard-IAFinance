@@ -122,7 +122,7 @@ TRAIN_MODEL = st.checkbox("Entraîner le modèle maintenant ?", value=True)
 
 if TRAIN_MODEL:
     #criterion = nn.MSELoss() #Mean Squared Error
-    criterion = nn.nn.HuberLoss(delta=1.0)
+    criterion = nn.HuberLoss(delta=1.0)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
     epochs = st.slider("Nombre d'époques", min_value=20, max_value=300, value=100, step=20)
 
