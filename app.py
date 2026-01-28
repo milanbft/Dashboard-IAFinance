@@ -116,7 +116,7 @@ class VolatilityLSTM(nn.Module): #définition du modèle
         out = self.fc(out) #convertion en une seule prédiction
         return out
 
-MODEL_PATH = f"{DATA_DIR}/volatility_lstm.pt" #enregistrement modèle pré-entraîné
+MODEL_PATH = "features/volatility_lstm.pt" #enregistrement modèle pré-entraîné
 
 @st.cache_resource
 def load_model(path): ##chargement modèle pré-entraîné
