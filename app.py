@@ -140,7 +140,7 @@ else:
     #criterion = nn.MSELoss() #Mean Squared Error : 1/N*somme des erreurs au carré
     criterion = nn.HuberLoss(delta=1.0) #combine MSE (petites erreurs) et MAE (grosses erreurs (Mean Absolute Error : 1/N*somme des valeurs absolues des erreurs))
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
-    epochs = st.slider("Nombre d'époques", min_value=10, max_value=80, value=20, step=5)
+    epochs = st.slider("Nombre d'époques", min_value=10, max_value=50, value=20, step=5)
 
     for epoch in range(epochs):
         model.train() #modèle en mode entraînement
