@@ -114,7 +114,7 @@ class VolatilityLSTM(nn.Module): #définition du modèle
         out = self.fc(out) #convertion en une seule prédiction
         return out
 
-model = VolatilityLSTM(input_size=X_tensor.shape[2])
+model = VolatilityLSTM(input_size=X_test.shape[2])
 
 #Entraînement LSTM
 
