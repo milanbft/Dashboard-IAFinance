@@ -116,17 +116,31 @@ class VolatilityLSTM(nn.Module): #définition du modèle
         out = self.fc(out) #convertion en une seule prédiction
         return out
 
-model = VolatilityLSTM(input_size=X_test.shape[2])
+MODEL_PATH = f"{DATA_DIR}/volatility_lstm.pt" #enregistrement modèle pré-entraîné
+
+@st.cache_resource
+def load_model(path): ##chargement modèle pré-entraîné
+    checkpoint = torch.load(path, map_location="cpu")
+    model = VolatilityLSTM(input_size=3)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    return model, checkpoint["scaler_X"], checkpoint["scaler_y"], checkpoint["seq_len"]
 
 #Entraînement LSTM
 
-TRAIN_MODEL = st.checkbox("Entraîner le modèle maintenant ?", value=True)
+mode = st.radio("Mode du modèle", ["Utiliser modèle pré-entraîné", "Entraîner maintenant (local uniquement)"])
 
-if TRAIN_MODEL:
+if mode == "Utiliser modèle pré-entraîné":
+    model, scaler_X, scaler_y, sequence_length = load_model(MODEL_PATH)
+    st.success("Modèle pré-entraîné chargé ✅")
+
+else:
+    st.warning("⚠️ Entraînement recommandé uniquement en local")
+    model = VolatilityLSTM(input_size=X_train.shape[2])
     #criterion = nn.MSELoss() #Mean Squared Error : 1/N*somme des erreurs au carré
     criterion = nn.HuberLoss(delta=1.0) #combine MSE (petites erreurs) et MAE (grosses erreurs (Mean Absolute Error : 1/N*somme des valeurs absolues des erreurs))
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #algorithme d'optimisation de mis à jours des poids (learning rate à changer)
-    epochs = st.slider("Nombre d'époques", min_value=20, max_value=300, value=100, step=20)
+    epochs = st.slider("Nombre d'époques", min_value=10, max_value=80, value=20, step=5)
 
     for epoch in range(epochs):
         model.train() #modèle en mode entraînement
@@ -138,9 +152,6 @@ if TRAIN_MODEL:
 
         if (epoch+1) % 10 == 0: #affichage périodique
             st.write(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.5f}") #Loss décroît=apprentissage
-
-else:
-    st.info("Chargement du modèle pré-entraîné (à implémenter si disponible)")
 
 #Prédiction
 
